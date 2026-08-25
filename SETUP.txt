@@ -1,0 +1,41 @@
+SECURE CLOUD VAULT - SETUP
+
+1. Create a Google Sheet.
+2. Extensions -> Apps Script.
+3. Replace Code.gs with the supplied Code.gs.
+4. In Code.gs set:
+   DRIVE_FOLDER_ID = your Google Drive vault folder ID
+   OWNER_EMAIL = your email address
+5. Save.
+6. Run ensureInitialOwner() once from the Apps Script editor and authorize it.
+   It creates the Users sheet and an initial owner:
+      Username: Administrator
+      Password: ChangeMe_123456
+   Immediately change this password from the dashboard.
+7. Deploy -> New deployment -> Web app.
+   Execute as: Me
+   Who has access: Anyone
+   Deploy and copy the /exec URL.
+   Google Apps Script web-app deployments expose an entry-point URL and are configured
+   with execution/access settings. See Google documentation:
+   https://developers.google.com/resources/api-libraries/documentation/script/v1/python/latest/script_v1.projects.deployments.html
+8. Put the /exec URL into script.js:
+   const API_URL = "https://script.google.com/macros/s/.../exec";
+9. Upload index.html, style.css, script.js to GitHub Pages.
+10. If Code.gs changes later:
+    Deploy -> Manage deployments -> Edit -> select a new version -> Deploy.
+
+IMPORTANT:
+- Login is password-only.
+- Each user's password must be unique.
+- Username is the identity shown in the "By" field.
+- User email is used for owner notifications.
+- Passwords are stored as salted hashes, not plain text.
+- The owner email receives login, upload, delete, account creation, account deletion,
+  and password-change alerts.
+- Files are stored in the configured Google Drive folder.
+
+LIMITATION:
+This implementation sends file contents through Apps Script as base64 for upload/download.
+It is suitable for normal documents/PDFs but is not a high-volume large-file storage API.
+For very large files, a Drive API/resumable-upload architecture is preferable.

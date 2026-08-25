@@ -3,7 +3,7 @@
 // ============================================================
 
 // Replace this with your deployed Apps Script Web App URL.
-const API_URL = "https://script.google.com/macros/s/AKfycbwkO4wXnuNQ6GbrUu7X3cY7B_HfSJFUr9SegrZUkUIbQZTLE92NiXejg-6-0H1ee4AnzA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwzhHzny4md9XMzg0PTCBrIdEPYlxDZbCbRt4bibOgugNWWoCvb29D-mo18NYld9vSLLg/exec";
 
 let authToken = sessionStorage.getItem("vault_token") || "";
 let currentUser = null;

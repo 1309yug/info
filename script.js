@@ -1,5 +1,5 @@
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbw0z7wg7D7wt0CcjZJgrkUzylbzCS0Ap7rxzhuZ6h8MhyRA65fkrkATHsgZ7eo1w14dOg/exec";
+  "https://script.google.com/macros/s/AKfycby8GP9sn4A4XsZz2kskjvehpPcPzDZ4V6YIKboM8M9OZXey29ZQrx3ZXDj6Mp7QMPzYlg/exec";
 
 let token = localStorage.getItem("vaultToken") || "";
 let user = JSON.parse(localStorage.getItem("vaultUser") || "null");

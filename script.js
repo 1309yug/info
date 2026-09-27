@@ -1,240 +1,264 @@
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbxxgy22-G35_R-Bz0YWPcBivlDfm9-oeeWvo6k6vPxoRVVel-FO1oDYZaqpXxQ3A9qm4A/exec";
-
-let token = "";
-let currentUser = null;
+  "https://script.google.com/macros/s/AKfycbzL8uTKTyXaCzNX6WTcBQ-ofYiVrJxclU6na4_d1B7RdjTeLwALM49BhHS1h9bzM1AS/exec";
 
 
-/* =========================================
+let authToken = localStorage.getItem("vaultToken") || "";
+let currentUser = JSON.parse(localStorage.getItem("vaultUser") || "null");
+
+let selectedFiles = [];
+let fileToDownload = null;
+
+
+/* =========================
    START
-========================================= */
+========================= */
 
 document.addEventListener("DOMContentLoaded", () => {
+
   document
-    .getElementById("login-form")
+    .getElementById("loginForm")
     .addEventListener("submit", login);
 
   document
-    .getElementById("logout-btn")
+    .getElementById("logoutButton")
     .addEventListener("click", logout);
 
   document
-    .getElementById("upload-btn")
+    .getElementById("fileInput")
+    .addEventListener("change", handleFileSelection);
+
+  document
+    .getElementById("uploadButton")
     .addEventListener("click", uploadFiles);
 
   document
-    .getElementById("file-input")
-    .addEventListener(
-      "change",
-      showSelectedFiles
-    );
+    .getElementById("refreshFilesButton")
+    .addEventListener("click", loadFiles);
 
   document
-    .getElementById("create-user-form")
-    .addEventListener(
-      "submit",
-      createUser
-    );
+    .getElementById("createUserForm")
+    .addEventListener("submit", createUser);
 
-  showLogin();
+  document
+    .getElementById("cancelDownload")
+    .addEventListener("click", closeDownloadModal);
+
+  document
+    .getElementById("confirmDownload")
+    .addEventListener("click", confirmDownload);
+
+
+  setupDragAndDrop();
+
+
+  if (authToken && currentUser) {
+    showDashboard();
+    loadFiles();
+
+    if (currentUser.role === "owner") {
+      loadUsers();
+    }
+  } else {
+    showLogin();
+  }
+
 });
 
 
-/* =========================================
+/* =========================
    API
-========================================= */
+========================= */
 
 async function callAPI(action, data = {}) {
 
-  const response = await fetch(
-    API_URL,
-    {
-      method: "POST",
+  const response = await fetch(API_URL, {
+    method: "POST",
 
-      headers: {
-        "Content-Type":
-          "text/plain;charset=utf-8"
-      },
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    },
 
-      body: JSON.stringify({
-        action,
-        ...data
-      })
-    }
-  );
+    body: JSON.stringify({
+      action: action,
+      ...data
+    })
+  });
 
-  const text =
-    await response.text();
+
+  const text = await response.text();
 
   let result;
 
   try {
     result = JSON.parse(text);
   } catch (error) {
-    console.error(text);
-
     throw new Error(
-      "Apps Script did not return JSON. " +
-      "Check the Web App deployment."
+      "Server returned an invalid response. Check your Apps Script deployment."
     );
   }
+
 
   if (!result.success) {
-    throw new Error(
-      result.message ||
-      "Request failed."
-    );
+    throw new Error(result.message || "Something went wrong.");
   }
+
 
   return result;
 }
 
 
-/* =========================================
+/* =========================
    LOGIN
-========================================= */
+========================= */
 
 async function login(event) {
 
   event.preventDefault();
 
+
+  const passwordInput =
+    document.getElementById("loginPassword");
+
   const password =
-    document
-      .getElementById("login-password")
-      .value
-      .trim();
+    passwordInput.value;
 
-  const button =
-    document.getElementById("login-btn");
 
-  const message =
-    document.getElementById("login-message");
+  if (!password.trim()) {
+    setStatus(
+      "loginStatus",
+      "Please enter your password."
+    );
 
-  if (!password) {
-    message.textContent =
-      "Enter your password.";
     return;
   }
 
-  button.disabled = true;
-  button.textContent =
-    "Signing In...";
 
-  message.textContent =
-    "Connecting...";
+  const button =
+    document.getElementById("loginButton");
+
+  button.disabled = true;
+  button.textContent = "Signing in...";
+
 
   try {
 
-    const result =
-      await callAPI(
-        "login",
-        {
-          password
-        }
-      );
+    const result = await callAPI(
+      "login",
+      {
+        password: password
+      }
+    );
 
-    token =
-      result.token;
 
-    currentUser =
-      result.user;
+    authToken = result.token;
+    currentUser = result.user;
 
-    message.textContent = "";
 
-    document
-      .getElementById(
-        "login-password"
-      )
-      .value = "";
+    localStorage.setItem(
+      "vaultToken",
+      authToken
+    );
+
+    localStorage.setItem(
+      "vaultUser",
+      JSON.stringify(currentUser)
+    );
+
+
+    passwordInput.value = "";
 
     showDashboard();
 
+    await loadFiles();
+
+
+    if (currentUser.role === "owner") {
+      await loadUsers();
+    }
+
+
   } catch (error) {
 
-    console.error(error);
-
-    message.textContent =
-      error.message;
+    setStatus(
+      "loginStatus",
+      error.message
+    );
 
   } finally {
 
     button.disabled = false;
-    button.textContent =
-      "Sign In";
+    button.textContent = "Sign In";
+
   }
 }
 
 
-/* =========================================
-   SCREEN
-========================================= */
+/* =========================
+   SHOW LOGIN
+========================= */
 
 function showLogin() {
 
   document
-    .getElementById(
-      "login-screen"
-    )
-    .style.display = "flex";
+    .getElementById("loginPage")
+    .classList.remove("hidden");
 
   document
-    .getElementById(
-      "dashboard"
-    )
-    .style.display = "none";
+    .getElementById("dashboardPage")
+    .classList.add("hidden");
+
 }
 
+
+/* =========================
+   SHOW DASHBOARD
+========================= */
 
 function showDashboard() {
 
   document
-    .getElementById(
-      "login-screen"
-    )
-    .style.display = "none";
+    .getElementById("loginPage")
+    .classList.add("hidden");
 
   document
-    .getElementById(
-      "dashboard"
-    )
-    .style.display = "block";
+    .getElementById("dashboardPage")
+    .classList.remove("hidden");
+
 
   document
-    .getElementById(
-      "username-display"
-    )
+    .getElementById("signedInAs")
     .textContent =
+      "Signed in as " +
       currentUser.username;
 
-  loadFiles();
 
-  if (
-    currentUser.role === "owner"
-  ) {
+  const management =
+    document.getElementById("userManagement");
 
-    document
-      .getElementById(
-        "user-management"
-      )
-      .style.display = "block";
 
-    loadUsers();
+  if (currentUser.role === "owner") {
+    management.classList.remove("hidden");
+  } else {
+    management.classList.add("hidden");
   }
+
 }
 
 
-/* =========================================
+/* =========================
    LOGOUT
-========================================= */
+========================= */
 
 async function logout() {
 
   try {
 
-    if (token) {
+    if (authToken) {
       await callAPI(
         "logout",
-        { token }
+        {
+          token: authToken
+        }
       );
     }
 
@@ -242,138 +266,804 @@ async function logout() {
     console.log(error);
   }
 
-  token = "";
+
+  authToken = "";
   currentUser = null;
+
+
+  localStorage.removeItem("vaultToken");
+  localStorage.removeItem("vaultUser");
+
 
   showLogin();
 }
 
 
-/* =========================================
-   SELECTED FILES
-========================================= */
+/* =========================
+   FILE SELECTION
+========================= */
 
-function showSelectedFiles() {
+function handleFileSelection(event) {
 
-  const input =
-    document.getElementById(
-      "file-input"
-    );
+  selectedFiles =
+    Array.from(event.target.files);
 
-  const box =
-    document.getElementById(
-      "selected-files"
-    );
-
-  box.innerHTML = "";
-
-  for (
-    const file of input.files
-  ) {
-
-    const item =
-      document.createElement(
-        "div"
-      );
-
-    item.className =
-      "selected-item";
-
-    item.textContent =
-      file.name;
-
-    box.appendChild(item);
-  }
+  renderSelectedFiles();
 }
 
 
-/* =========================================
+function renderSelectedFiles() {
+
+  const container =
+    document.getElementById("selectedFiles");
+
+  container.innerHTML = "";
+
+
+  selectedFiles.forEach(file => {
+
+    const div =
+      document.createElement("div");
+
+    div.className = "selected-file";
+
+    div.textContent =
+      file.name +
+      " — " +
+      formatBytes(file.size);
+
+    container.appendChild(div);
+
+  });
+}
+
+
+/* =========================
+   DRAG AND DROP
+========================= */
+
+function setupDragAndDrop() {
+
+  const dropZone =
+    document.getElementById("dropZone");
+
+
+  dropZone.addEventListener(
+    "dragover",
+    event => {
+
+      event.preventDefault();
+
+      dropZone.classList.add("dragover");
+
+    }
+  );
+
+
+  dropZone.addEventListener(
+    "dragleave",
+    () => {
+
+      dropZone.classList.remove("dragover");
+
+    }
+  );
+
+
+  dropZone.addEventListener(
+    "drop",
+    event => {
+
+      event.preventDefault();
+
+      dropZone.classList.remove("dragover");
+
+
+      selectedFiles =
+        Array.from(event.dataTransfer.files);
+
+      renderSelectedFiles();
+
+    }
+  );
+
+}
+
+
+/* =========================
    UPLOAD
-========================================= */
+========================= */
 
 async function uploadFiles() {
 
-  const input =
-    document.getElementById(
-      "file-input"
-    );
+  if (!selectedFiles.length) {
 
-  const button =
-    document.getElementById(
-      "upload-btn"
-    );
-
-  const status =
-    document.getElementById(
-      "upload-status"
-    );
-
-  if (!input.files.length) {
-
-    alert(
-      "Please select a file."
+    setStatus(
+      "uploadStatus",
+      "Please select at least one file."
     );
 
     return;
   }
 
+
+  const button =
+    document.getElementById("uploadButton");
+
   button.disabled = true;
+  button.textContent = "Uploading...";
+
 
   try {
 
-    for (
-      const file of input.files
-    ) {
+    let uploaded = 0;
 
-      status.textContent =
+
+    for (const file of selectedFiles) {
+
+      setStatus(
+        "uploadStatus",
         "Uploading " +
         file.name +
-        "...";
+        "..."
+      );
+
 
       const base64 =
         await readFile(file);
 
+
       await callAPI(
         "upload",
         {
-          token,
+          token: authToken,
           fileName: file.name,
-          mimeType:
-            file.type ||
-            "application/octet-stream",
-          fileData: base64
+          mimeType: file.type || "application/octet-stream",
+          base64: base64
         }
       );
+
+
+      uploaded++;
+
     }
 
-    input.value = "";
 
-    document
-      .getElementById(
-        "selected-files"
-      )
-      .innerHTML = "";
+    selectedFiles = [];
 
-    status.textContent =
-      "Upload complete.";
+    document.getElementById(
+      "fileInput"
+    ).value = "";
 
-    loadFiles();
+    renderSelectedFiles();
+
+
+    setStatus(
+      "uploadStatus",
+      uploaded +
+      " file(s) uploaded successfully."
+    );
+
+
+    await loadFiles();
+
 
   } catch (error) {
 
-    console.error(error);
+    setStatus(
+      "uploadStatus",
+      error.message
+    );
 
-    status.textContent =
-      "Upload failed.";
+  } finally {
+
+    button.disabled = false;
+    button.textContent = "Upload Files";
+
+  }
+
+}
+
+
+/* =========================
+   LOAD FILES
+========================= */
+
+async function loadFiles() {
+
+  const container =
+    document.getElementById("fileGrid");
+
+
+  container.innerHTML =
+    "<p>Loading files...</p>";
+
+
+  try {
+
+    const result =
+      await callAPI(
+        "getFiles",
+        {
+          token: authToken
+        }
+      );
+
+
+    container.innerHTML = "";
+
+
+    if (!result.files.length) {
+
+      container.innerHTML =
+        "<p>No files found.</p>";
+
+      return;
+    }
+
+
+    result.files.forEach(file => {
+
+      const card =
+        document.createElement("div");
+
+      card.className = "file-card";
+
+
+      const name =
+        document.createElement("div");
+
+      name.className = "file-name";
+
+      name.textContent =
+        file.name;
+
+
+      const info =
+        document.createElement("div");
+
+      info.className = "file-info";
+
+      info.innerHTML =
+        "Size: " +
+        formatBytes(file.size) +
+        "<br>" +
+        "Type: " +
+        escapeHTML(file.mimeType) +
+        "<br>" +
+        "By: " +
+        escapeHTML(file.owner) +
+        "<br>" +
+        "Date: " +
+        escapeHTML(file.date);
+
+
+      const actions =
+        document.createElement("div");
+
+      actions.className =
+        "file-actions";
+
+
+      const downloadButton =
+        document.createElement("button");
+
+      downloadButton.className =
+        "download-button";
+
+      downloadButton.textContent =
+        "Download";
+
+
+      downloadButton.onclick =
+        () => openDownloadModal(file);
+
+
+      actions.appendChild(downloadButton);
+
+
+      if (currentUser.role === "owner") {
+
+        const deleteButton =
+          document.createElement("button");
+
+        deleteButton.className =
+          "delete-button";
+
+        deleteButton.textContent =
+          "Delete";
+
+
+        deleteButton.onclick =
+          () =>
+            deleteFile(
+              file,
+              deleteButton,
+              card
+            );
+
+
+        actions.appendChild(deleteButton);
+
+      }
+
+
+      card.appendChild(name);
+      card.appendChild(info);
+      card.appendChild(actions);
+
+
+      container.appendChild(card);
+
+    });
+
+
+  } catch (error) {
+
+    container.innerHTML = "";
+
+    setStatus(
+      "filesStatus",
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   DOWNLOAD MODAL
+========================= */
+
+function openDownloadModal(file) {
+
+  fileToDownload = file;
+
+
+  document
+    .getElementById("downloadFileName")
+    .textContent =
+      file.name;
+
+
+  document
+    .getElementById("downloadModal")
+    .classList.remove("hidden");
+
+}
+
+
+function closeDownloadModal() {
+
+  fileToDownload = null;
+
+  document
+    .getElementById("downloadModal")
+    .classList.add("hidden");
+
+}
+
+
+async function confirmDownload() {
+
+  if (!fileToDownload) {
+    return;
+  }
+
+
+  const button =
+    document.getElementById("confirmDownload");
+
+  button.disabled = true;
+  button.textContent = "Downloading...";
+
+
+  try {
+
+    const result =
+      await callAPI(
+        "download",
+        {
+          token: authToken,
+          fileId: fileToDownload.id
+        }
+      );
+
+
+    const binary =
+      atob(result.base64);
+
+
+    const bytes =
+      new Uint8Array(binary.length);
+
+
+    for (
+      let i = 0;
+      i < binary.length;
+      i++
+    ) {
+
+      bytes[i] =
+        binary.charCodeAt(i);
+
+    }
+
+
+    const blob =
+      new Blob(
+        [bytes],
+        {
+          type:
+            result.mimeType ||
+            "application/octet-stream"
+        }
+      );
+
+
+    const url =
+      URL.createObjectURL(blob);
+
+
+    const link =
+      document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+      result.fileName;
+
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+
+    URL.revokeObjectURL(url);
+
+
+    closeDownloadModal();
+
+
+  } catch (error) {
 
     alert(error.message);
 
   } finally {
 
     button.disabled = false;
+    button.textContent = "Download";
+
   }
+
 }
 
+
+/* =========================
+   DELETE FILE
+========================= */
+
+async function deleteFile(
+  file,
+  button,
+  card
+) {
+
+  const confirmed =
+    confirm(
+      'Delete "' +
+      file.name +
+      '"?'
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  button.disabled = true;
+  button.textContent = "Deleting...";
+
+
+  try {
+
+    await callAPI(
+      "delete",
+      {
+        token: authToken,
+        fileId: file.id
+      }
+    );
+
+
+    card.remove();
+
+
+  } catch (error) {
+
+    alert(error.message);
+
+    button.disabled = false;
+    button.textContent = "Delete";
+
+  }
+
+}
+
+
+/* =========================
+   CREATE USER
+========================= */
+
+async function createUser(event) {
+
+  event.preventDefault();
+
+
+  const username =
+    document.getElementById(
+      "newUsername"
+    ).value.trim();
+
+
+  const email =
+    document.getElementById(
+      "newEmail"
+    ).value.trim();
+
+
+  const role =
+    document.getElementById(
+      "newRole"
+    ).value;
+
+
+  const password =
+    document.getElementById(
+      "newPassword"
+    ).value;
+
+
+  /*
+    NO 8 CHARACTER REQUIREMENT.
+    Any non-empty password is allowed.
+  */
+
+  if (!password) {
+
+    setStatus(
+      "userStatus",
+      "Password cannot be empty."
+    );
+
+    return;
+  }
+
+
+  try {
+
+    await callAPI(
+      "createUser",
+      {
+        token: authToken,
+        username: username,
+        email: email,
+        role: role,
+        password: password
+      }
+    );
+
+
+    document
+      .getElementById("createUserForm")
+      .reset();
+
+
+    setStatus(
+      "userStatus",
+      "User created successfully."
+    );
+
+
+    await loadUsers();
+
+
+  } catch (error) {
+
+    setStatus(
+      "userStatus",
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   LOAD USERS
+========================= */
+
+async function loadUsers() {
+
+  if (
+    !currentUser ||
+    currentUser.role !== "owner"
+  ) {
+    return;
+  }
+
+
+  const container =
+    document.getElementById("userList");
+
+
+  container.innerHTML =
+    "<p>Loading users...</p>";
+
+
+  try {
+
+    const result =
+      await callAPI(
+        "getUsers",
+        {
+          token: authToken
+        }
+      );
+
+
+    container.innerHTML = "";
+
+
+    result.users.forEach(user => {
+
+      const row =
+        document.createElement("div");
+
+      row.className = "user-row";
+
+
+      const details =
+        document.createElement("div");
+
+      details.className =
+        "user-details";
+
+
+      const name =
+        document.createElement("div");
+
+      name.className =
+        "user-name";
+
+      name.textContent =
+        user.username;
+
+
+      const email =
+        document.createElement("div");
+
+      email.className =
+        "user-email";
+
+      email.textContent =
+        user.email;
+
+
+      const role =
+        document.createElement("div");
+
+      role.className =
+        "user-role";
+
+      role.textContent =
+        "Role: " +
+        user.role +
+        " | Status: " +
+        user.status;
+
+
+      details.appendChild(name);
+      details.appendChild(email);
+      details.appendChild(role);
+
+
+      row.appendChild(details);
+
+
+      if (
+        user.username !==
+        currentUser.username
+      ) {
+
+        const deleteButton =
+          document.createElement("button");
+
+        deleteButton.className =
+          "user-delete";
+
+        deleteButton.textContent =
+          "Delete";
+
+
+        deleteButton.onclick =
+          () => deleteUser(user);
+
+
+        row.appendChild(deleteButton);
+
+      }
+
+
+      container.appendChild(row);
+
+    });
+
+
+  } catch (error) {
+
+    container.innerHTML = "";
+
+    setStatus(
+      "userStatus",
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   DELETE USER
+========================= */
+
+async function deleteUser(user) {
+
+  const confirmed =
+    confirm(
+      'Delete user "' +
+      user.username +
+      '"?'
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  try {
+
+    await callAPI(
+      "deleteUser",
+      {
+        token: authToken,
+        username: user.username
+      }
+    );
+
+
+    await loadUsers();
+
+
+  } catch (error) {
+
+    alert(error.message);
+
+  }
+
+}
+
+
+/* =========================
+   READ FILE
+========================= */
 
 function readFile(file) {
 
@@ -383,457 +1073,114 @@ function readFile(file) {
       const reader =
         new FileReader();
 
+
       reader.onload = () => {
 
         const result =
           reader.result;
 
-        resolve(
-          result.split(",")[1]
-        );
+
+        const base64 =
+          result.split(",")[1];
+
+
+        resolve(base64);
+
       };
 
+
       reader.onerror =
-        reject;
+        () =>
+          reject(
+            new Error(
+              "Could not read file."
+            )
+          );
+
 
       reader.readAsDataURL(file);
+
     }
   );
+
 }
 
 
-/* =========================================
-   FILES
-========================================= */
+/* =========================
+   FORMAT BYTES
+========================= */
 
-async function loadFiles() {
+function formatBytes(bytes) {
 
-  const grid =
-    document.getElementById(
-      "files-grid"
-    );
-
-  grid.innerHTML =
-    "<p>Loading files...</p>";
-
-  try {
-
-    const result =
-      await callAPI(
-        "getFiles",
-        { token }
-      );
-
-    grid.innerHTML = "";
-
-    if (
-      result.files.length === 0
-    ) {
-
-      grid.innerHTML =
-        "<p>No files yet.</p>";
-
-      return;
-    }
-
-    result.files.forEach(
-      file => {
-
-        const card =
-          document.createElement(
-            "div"
-          );
-
-        card.className =
-          "file-card";
-
-        card.innerHTML = `
-          <div class="file-icon">
-            📄
-          </div>
-
-          <div class="file-info">
-            <h3></h3>
-            <p></p>
-            <p></p>
-          </div>
-
-          <div class="file-actions">
-            <button
-              type="button"
-              class="download-btn"
-            >
-              Download
-            </button>
-
-            ${
-              currentUser.role === "owner"
-                ? `
-                  <button
-                    type="button"
-                    class="delete-btn"
-                  >
-                    Delete
-                  </button>
-                `
-                : ""
-            }
-          </div>
-        `;
-
-        card.querySelector("h3")
-          .textContent =
-            file.name;
-
-        card.querySelectorAll("p")[0]
-          .textContent =
-            formatBytes(file.size);
-
-        card.querySelectorAll("p")[1]
-          .textContent =
-            "By " + file.owner;
-
-        card
-          .querySelector(
-            ".download-btn"
-          )
-          .addEventListener(
-            "click",
-            () => downloadFile(file)
-          );
-
-        const deleteButton =
-          card.querySelector(
-            ".delete-btn"
-          );
-
-        if (deleteButton) {
-
-          deleteButton.addEventListener(
-            "click",
-            () =>
-              deleteFile(
-                file,
-                deleteButton,
-                card
-              )
-          );
-        }
-
-        grid.appendChild(card);
-      }
-    );
-
-  } catch (error) {
-
-    console.error(error);
-
-    grid.innerHTML =
-      `<p>${error.message}</p>`;
+  if (!bytes) {
+    return "0 Bytes";
   }
+
+
+  const units = [
+    "Bytes",
+    "KB",
+    "MB",
+    "GB"
+  ];
+
+
+  const i =
+    Math.floor(
+      Math.log(bytes) /
+      Math.log(1024)
+    );
+
+
+  return (
+    bytes /
+    Math.pow(1024, i)
+  ).toFixed(
+    i === 0 ? 0 : 2
+  ) +
+  " " +
+  units[i];
+
 }
 
 
-/* =========================================
-   DELETE
-========================================= */
+/* =========================
+   STATUS
+========================= */
 
-async function deleteFile(
-  file,
-  button,
-  card
+function setStatus(
+  elementId,
+  message
 ) {
 
-  if (
-    !confirm(
-      "Delete " +
-      file.name +
-      "?"
-    )
-  ) {
-    return;
-  }
-
-  button.disabled = true;
-  button.textContent =
-    "Deleting...";
-
-  try {
-
-    await callAPI(
-      "delete",
-      {
-        token,
-        fileId: file.id
-      }
+  const element =
+    document.getElementById(
+      elementId
     );
 
-    card.remove();
 
-  } catch (error) {
-
-    alert(error.message);
-
-    button.disabled = false;
-    button.textContent =
-      "Delete";
+  if (element) {
+    element.textContent =
+      message;
   }
+
 }
 
 
-/* =========================================
-   DOWNLOAD
-========================================= */
+/* =========================
+   HTML ESCAPE
+========================= */
 
-async function downloadFile(file) {
+function escapeHTML(value) {
 
-  try {
+  const div =
+    document.createElement("div");
 
-    const result =
-      await callAPI(
-        "download",
-        {
-          token,
-          fileId: file.id
-        }
-      );
+  div.textContent =
+    value == null
+      ? ""
+      : String(value);
 
-    const binary =
-      atob(result.fileData);
+  return div.innerHTML;
 
-    const bytes =
-      new Uint8Array(
-        binary.length
-      );
-
-    for (
-      let i = 0;
-      i < binary.length;
-      i++
-    ) {
-      bytes[i] =
-        binary.charCodeAt(i);
-    }
-
-    const blob =
-      new Blob(
-        [bytes],
-        {
-          type:
-            result.mimeType
-        }
-      );
-
-    const url =
-      URL.createObjectURL(
-        blob
-      );
-
-    const link =
-      document.createElement(
-        "a"
-      );
-
-    link.href = url;
-    link.download =
-      result.fileName;
-
-    link.click();
-
-    URL.revokeObjectURL(
-      url
-    );
-
-  } catch (error) {
-
-    alert(
-      "Download failed: " +
-      error.message
-    );
-  }
-}
-
-
-/* =========================================
-   CREATE USER
-========================================= */
-
-async function createUser(event) {
-
-  event.preventDefault();
-
-  try {
-
-    const username =
-      document
-        .getElementById(
-          "new-username"
-        )
-        .value
-        .trim();
-
-    const email =
-      document
-        .getElementById(
-          "new-email"
-        )
-        .value
-        .trim();
-
-    const role =
-      document
-        .getElementById(
-          "new-role"
-        )
-        .value;
-
-    const password =
-      document
-        .getElementById(
-          "new-password"
-        )
-        .value
-        .trim();
-
-    await callAPI(
-      "createUser",
-      {
-        token,
-        username,
-        email,
-        role,
-        password
-      }
-    );
-
-    alert(
-      "User created successfully."
-    );
-
-    event.target.reset();
-
-    loadUsers();
-
-  } catch (error) {
-
-    alert(error.message);
-  }
-}
-
-
-/* =========================================
-   USERS
-========================================= */
-
-async function loadUsers() {
-
-  try {
-
-    const result =
-      await callAPI(
-        "getUsers",
-        { token }
-      );
-
-    const box =
-      document.getElementById(
-        "users-table"
-      );
-
-    box.innerHTML = "";
-
-    result.users.forEach(
-      u => {
-
-        const row =
-          document.createElement(
-            "div"
-          );
-
-        row.className =
-          "user-row";
-
-        row.innerHTML = `
-          <strong></strong>
-          <span></span>
-          <span></span>
-          <button
-            type="button"
-            class="user-delete"
-          >
-            Delete
-          </button>
-        `;
-
-        row.children[0]
-          .textContent =
-            u.username;
-
-        row.children[1]
-          .textContent =
-            u.email;
-
-        row.children[2]
-          .textContent =
-            u.role;
-
-        if (
-          u.username ===
-          currentUser.username
-        ) {
-
-          row.children[3]
-            .style.display =
-              "none";
-        } else {
-
-          row.children[3]
-            .addEventListener(
-              "click",
-              () =>
-                deleteUser(
-                  u.username
-                )
-            );
-        }
-
-        box.appendChild(row);
-      }
-    );
-
-  } catch (error) {
-
-    console.error(error);
-  }
-}
-
-
-async function deleteUser(username) {
-
-  if (
-    !confirm(
-      "Delete user " +
-      username +
-      "?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-
-    await callAPI(
-      "deleteUser",
-      {
-        token,
-        username
-      }
-    );
-
-    loadUsers();
-
-  } catch (error) {
-
-    alert(error.message);
-  }
 }

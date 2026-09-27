@@ -1,116 +1,137 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Secure Cloud Vault</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <main id="login-screen">
-    <section class="login-card">
-      <div class="brand-icon">🔒</div>
+
+  <!-- LOGIN -->
+  <section id="login-screen">
+    <div class="login-box">
       <h1>Secure Cloud Vault</h1>
-      <p class="muted">Enter your password to access your files</p>
+      <p>Sign in to access your files</p>
 
-      <form id="login-form" onsubmit="return false;">
-        <label for="login-password">Password</label>
-        <input id="login-password" type="password" minlength="8"
-               autocomplete="current-password" placeholder="Enter password" required>
-        <button id="login-btn" class="primary" type="button">
-          <span id="login-text">Sign In</span><span id="login-spinner" class="spinner hidden"></span>
+      <form id="login-form">
+        <input
+          id="login-password"
+          type="password"
+          placeholder="Password"
+          autocomplete="current-password"
+          required
+        >
+
+        <button id="login-btn" type="submit">
+          Sign In
         </button>
-      </form>
-      <div id="login-error" class="error"></div>
-    </section>
-  </main>
 
-  <main id="dashboard-screen" class="hidden">
+        <div id="login-message"></div>
+      </form>
+    </div>
+  </section>
+
+
+  <!-- DASHBOARD -->
+  <section id="dashboard">
+
     <header class="topbar">
-      <div class="identity">
-        <div class="avatar">👤</div>
-        <div>
-          <strong id="username-label">User</strong>
-          <span id="role-label" class="badge">viewer</span>
-        </div>
+      <div>
+        <h1>Secure Cloud Vault</h1>
+        <p>
+          Signed in as
+          <strong id="username-display">User</strong>
+        </p>
       </div>
-      <div class="actions">
-        <button id="theme-btn" class="secondary">☀️ Light</button>
-        <button id="logout-btn" class="secondary">Sign Out</button>
-      </div>
+
+      <button id="logout-btn" type="button">
+        Logout
+      </button>
     </header>
 
-    <section class="card">
-      <div class="section-head">
-        <div>
-          <h2>Upload Files</h2>
-          <p class="muted">PDFs, documents, images, videos and other files</p>
-        </div>
-      </div>
-      <div id="drop-zone" class="drop-zone">
-        <div class="big-icon">📁</div>
-        <p>Drag & drop files here or <label for="file-input">browse</label></p>
-        <input id="file-input" type="file" multiple hidden>
-      </div>
-      <ul id="queue" class="queue"></ul>
-      <div class="row">
-        <button id="upload-btn" class="primary" disabled>Upload Selected</button>
-        <span id="upload-status" class="muted"></span>
-      </div>
-    </section>
 
-    <section class="card">
-      <div class="section-head">
-        <div>
-          <h2>My Vault</h2>
-          <p class="muted">Files are stored in your Google Drive vault</p>
-        </div>
-        <button id="refresh-btn" class="secondary">↻ Refresh</button>
-      </div>
-      <div id="files-grid" class="files-grid">
-        <p class="muted">Loading...</p>
-      </div>
-    </section>
+    <main>
 
-    <section id="admin-section" class="card hidden">
-      <h2>User Management</h2>
-      <p class="muted">Owner controls</p>
-      <form id="create-user-form" class="admin-grid">
-        <input id="new-username" placeholder="Username / identity" required>
-        <input id="new-email" type="email" placeholder="Email" required>
-        <select id="new-role">
-          <option value="viewer">Viewer</option>
-          <option value="admin">Admin</option>
-          <option value="owner">Owner</option>
-        </select>
-        <input id="new-password" type="password" minlength="8" placeholder="Password (8+ characters)" required>
-        <button class="primary" type="submit">Create User</button>
-      </form>
-      <div id="users-list"></div>
-    </section>
+      <!-- UPLOAD -->
+      <section class="panel">
+        <h2>Upload Files</h2>
 
-    <section class="card">
-      <h2>Account</h2>
-      <form id="password-form" class="password-grid">
-        <input id="current-password" type="password" placeholder="Current password" required>
-        <input id="new-password-change" type="password" minlength="8" placeholder="New password" required>
-        <input id="confirm-password-change" type="password" minlength="8" placeholder="Confirm new password" required>
-        <button class="primary" type="submit">Change Password</button>
-      </form>
-      <div id="password-status" class="status"></div>
-    </section>
-  </main>
+        <input
+          id="file-input"
+          type="file"
+          multiple
+        >
 
-  <div id="modal" class="modal hidden">
-    <div class="modal-box">
-      <h2>Confirm Delete</h2>
-      <p id="delete-text" class="muted"></p>
-      <div class="modal-actions">
-        <button id="cancel-delete" class="secondary">Cancel</button>
-        <button id="confirm-delete" class="danger">Delete</button>
-      </div>
-    </div>
-  </div>
+        <div id="selected-files"></div>
+
+        <button id="upload-btn" type="button">
+          Upload Files
+        </button>
+
+        <p id="upload-status"></p>
+      </section>
+
+
+      <!-- FILES -->
+      <section class="panel">
+        <h2>My Files</h2>
+
+        <div id="files-grid"></div>
+      </section>
+
+
+      <!-- ADMIN -->
+      <section
+        id="user-management"
+        class="panel"
+        style="display:none;"
+      >
+
+        <h2>User Management</h2>
+
+        <form id="create-user-form">
+
+          <input
+            id="new-username"
+            type="text"
+            placeholder="Username"
+            required
+          >
+
+          <input
+            id="new-email"
+            type="email"
+            placeholder="Email"
+            required
+          >
+
+          <select id="new-role">
+            <option value="user">User</option>
+            <option value="owner">Administrator</option>
+          </select>
+
+          <input
+            id="new-password"
+            type="password"
+            placeholder="Password"
+            required
+          >
+
+          <button type="submit">
+            Create User
+          </button>
+
+        </form>
+
+        <div id="users-table"></div>
+
+      </section>
+
+    </main>
+
+  </section>
 
   <script src="script.js"></script>
 </body>

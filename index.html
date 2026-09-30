@@ -1,168 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  >
+
   <title>Secure Cloud Vault</title>
-  <link rel="stylesheet" href="style.css">
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
 </head>
 
 <body>
 
-  <!-- LOGIN -->
+  <!-- ================= LOGIN ================= -->
+
   <section id="loginPage" class="login-page">
+
     <div class="login-box">
+
       <h1>Secure Cloud Vault</h1>
-      <p class="subtitle">Sign in to continue</p>
+
+      <p class="subtitle">
+        Secure file storage
+      </p>
 
       <form id="loginForm">
+
         <input
+          id="password"
           type="password"
-          id="loginPassword"
-          placeholder="Enter password"
-          autocomplete="current-password"
+          placeholder="Password"
+          autocomplete="off"
           required
         >
 
-        <button type="submit" id="loginButton">
+        <button type="submit">
           Sign In
         </button>
+
       </form>
 
-      <p id="loginStatus" class="status"></p>
+      <div id="status"></div>
+
     </div>
+
   </section>
 
 
-  <!-- DASHBOARD -->
-  <section id="dashboardPage" class="dashboard-page hidden">
+  <!-- ================= DASHBOARD ================= -->
+
+  <section id="dashboard" style="display:none;">
 
     <header class="topbar">
+
       <div>
-        <h1>Secure Cloud Vault</h1>
-        <p id="signedInAs"></p>
+        <h2>Secure Cloud Vault</h2>
+
+        <span>
+          Signed in as
+          <strong id="currentUsername"></strong>
+        </span>
       </div>
 
-      <button id="logoutButton" class="logout-button">
+      <button
+        type="button"
+        onclick="logout()"
+      >
         Logout
       </button>
+
     </header>
 
 
     <main class="container">
 
-      <!-- UPLOAD -->
+
+      <!-- ================= UPLOAD ================= -->
+
       <section class="panel">
+
         <h2>Upload Files</h2>
 
-        <div id="dropZone" class="drop-zone">
-          <p>Drag & Drop files here</p>
-          <span>or</span>
+        <form id="uploadForm">
 
-          <label class="file-label">
-            Choose Files
+          <div
+            id="dropZone"
+            class="drop-zone"
+          >
+
+            <p>
+              Drag & drop files here
+            </p>
+
+            <span>
+              or click to select
+            </span>
+
             <input
-              type="file"
               id="fileInput"
+              type="file"
               multiple
               hidden
             >
-          </label>
-        </div>
 
-        <div id="selectedFiles"></div>
+          </div>
 
-        <button id="uploadButton" class="primary-button">
-          Upload Files
-        </button>
+          <button type="submit">
+            Upload
+          </button>
 
-        <p id="uploadStatus" class="status"></p>
+        </form>
+
       </section>
 
 
-      <!-- FILES -->
+      <!-- ================= FILES ================= -->
+
       <section class="panel">
+
         <div class="section-header">
+
           <h2>My Files</h2>
 
-          <button id="refreshFilesButton" class="secondary-button">
+          <button
+            type="button"
+            onclick="loadFiles()"
+          >
             Refresh
           </button>
+
         </div>
 
-        <div id="fileGrid" class="file-grid"></div>
+        <div id="fileList"></div>
 
-        <p id="filesStatus" class="status"></p>
       </section>
 
 
-      <!-- USER MANAGEMENT -->
-      <section id="userManagement" class="panel hidden">
+      <!-- ================= USER MANAGEMENT ================= -->
+
+      <section
+        id="userManagement"
+        class="panel"
+        style="display:none;"
+      >
 
         <h2>User Management</h2>
 
-        <form id="createUserForm" class="user-form">
+
+        <form id="createUserForm">
 
           <input
-            type="text"
             id="newUsername"
+            type="text"
             placeholder="Username"
+            autocomplete="off"
             required
           >
 
           <input
-            type="email"
             id="newEmail"
+            type="email"
             placeholder="Email"
             required
           >
 
           <select id="newRole">
-            <option value="user">User</option>
-            <option value="owner">Owner</option>
+
+            <option value="user">
+              User
+            </option>
+
+            <option value="owner">
+              Owner
+            </option>
+
           </select>
 
           <input
-            type="text"
             id="newPassword"
-            placeholder="Password - any non-empty length"
+            type="text"
+            placeholder="Password"
+            autocomplete="off"
             required
           >
 
-          <button type="submit" class="primary-button">
+          <button type="submit">
             Create User
           </button>
 
         </form>
 
-        <p id="userStatus" class="status"></p>
+
+        <div class="section-header">
+
+          <h3>Users</h3>
+
+          <button
+            type="button"
+            onclick="loadUsers()"
+          >
+            Refresh
+          </button>
+
+        </div>
 
         <div id="userList"></div>
 
       </section>
 
     </main>
+
   </section>
-
-
-  <!-- DOWNLOAD MODAL -->
-  <div id="downloadModal" class="modal hidden">
-    <div class="modal-box">
-
-      <h2>Download File</h2>
-
-      <p id="downloadFileName"></p>
-
-      <button id="confirmDownload" class="primary-button">
-        Download
-      </button>
-
-      <button id="cancelDownload" class="secondary-button">
-        Cancel
-      </button>
-
-    </div>
-  </div>
 
 
   <script src="script.js"></script>

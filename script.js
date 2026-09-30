@@ -1,5 +1,5 @@
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbyNWSg7B381DyikPs1EkmXQPOfpYndncdMn2DMZB9TCxUosXcJ8OfdA5bg_juEZ88cF6g/exec";
+  "https://script.google.com/macros/s/AKfycbziL4bQk-9Xsm798fChimUrnJNZJalMivULIG3hnFmBjvODEYJ0P1pnuQyLJ0cBg6QBeQ/exec";
 
 let token = "";
 let user = null;

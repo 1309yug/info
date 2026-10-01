@@ -1,226 +1,138 @@
+<html>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Secure Cloud Vault</title>
+  <style>
+    * { box-sizing: border-box; }
 
-  <link
-    rel="stylesheet"
-    href="style.css"
-  >
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #101827;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    .login-box {
+      width: min(360px, 90%);
+      padding: 30px;
+      background: #1e293b;
+      border-radius: 16px;
+      box-shadow: 0 12px 35px #0005;
+    }
+
+    h1 { text-align: center; font-size: 25px; }
+    p { text-align: center; color: #cbd5e1; }
+
+    input, button {
+      width: 100%;
+      padding: 13px;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    input { background: #334155; color: white; }
+    input::placeholder { color: #cbd5e1; }
+
+    button {
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled { opacity: .6; cursor: wait; }
+
+    #message {
+      min-height: 20px;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+  </style>
 </head>
-
 <body>
-
-  <!-- ================= LOGIN ================= -->
-
-  <section id="loginPage" class="login-page">
-
-    <div class="login-box">
-
-      <h1>Secure Cloud Vault</h1>
-
-      <p class="subtitle">
-        Secure file storage
-      </p>
-
-      <form id="loginForm">
-
-        <input
-          id="password"
-          type="password"
-          placeholder="Password"
-          autocomplete="off"
-          required
-        >
-
-        <button type="submit">
-          Sign In
-        </button>
-
-      </form>
-
-      <div id="status"></div>
-
-    </div>
-
-  </section>
-
-
-  <!-- ================= DASHBOARD ================= -->
-
-  <section id="dashboard" style="display:none;">
-
-    <header class="topbar">
-
-      <div>
-        <h2>Secure Cloud Vault</h2>
-
-        <span>
-          Signed in as
-          <strong id="currentUsername"></strong>
-        </span>
-      </div>
-
-      <button
-        type="button"
-        onclick="logout()"
-      >
-        Logout
-      </button>
-
-    </header>
-
-
-    <main class="container">
-
-
-      <!-- ================= UPLOAD ================= -->
-
-      <section class="panel">
-
-        <h2>Upload Files</h2>
-
-        <form id="uploadForm">
-
-          <div
-            id="dropZone"
-            class="drop-zone"
-          >
-
-            <p>
-              Drag & drop files here
-            </p>
-
-            <span>
-              or click to select
-            </span>
-
-            <input
-              id="fileInput"
-              type="file"
-              multiple
-              hidden
-            >
-
-          </div>
-
-          <button type="submit">
-            Upload
-          </button>
-
-        </form>
-
-      </section>
-
-
-      <!-- ================= FILES ================= -->
-
-      <section class="panel">
-
-        <div class="section-header">
-
-          <h2>My Files</h2>
-
-          <button
-            type="button"
-            onclick="loadFiles()"
-          >
-            Refresh
-          </button>
-
-        </div>
-
-        <div id="fileList"></div>
-
-      </section>
-
-
-      <!-- ================= USER MANAGEMENT ================= -->
-
-      <section
-        id="userManagement"
-        class="panel"
-        style="display:none;"
-      >
-
-        <h2>User Management</h2>
-
-
-        <form id="createUserForm">
-
-          <input
-            id="newUsername"
-            type="text"
-            placeholder="Username"
-            autocomplete="off"
-            required
-          >
-
-          <input
-            id="newEmail"
-            type="email"
-            placeholder="Email"
-            required
-          >
-
-          <select id="newRole">
-
-            <option value="user">
-              User
-            </option>
-
-            <option value="owner">
-              Owner
-            </option>
-
-          </select>
-
-          <input
-            id="newPassword"
-            type="text"
-            placeholder="Password"
-            autocomplete="off"
-            required
-          >
-
-          <button type="submit">
-            Create User
-          </button>
-
-        </form>
-
-
-        <div class="section-header">
-
-          <h3>Users</h3>
-
-          <button
-            type="button"
-            onclick="loadUsers()"
-          >
-            Refresh
-          </button>
-
-        </div>
-
-        <div id="userList"></div>
-
-      </section>
-
-    </main>
-
-  </section>
-
-
-  <script src="script.js"></script>
-
+  <main class="login-box">
+    <h1>Secure Cloud Vault</h1>
+    <p>Sign in to access your files</p>
+
+    <form id="loginForm">
+      <input id="email" type="email"
+             placeholder="Email address"
+             autocomplete="username" required>
+
+      <input id="password" type="password"
+             placeholder="Password"
+             autocomplete="current-password" required>
+
+      <button id="loginButton" type="submit">Sign In</button>
+    </form>
+
+    <p id="message" role="status"></p>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from
+      "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+
+    import {
+      getAuth,
+      signInWithEmailAndPassword
+    } from
+      "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJtbvlNz-a2_i3wHx9bO-1FWy3naisBzk",
+      authDomain: "cloud-vault-71d1b.firebaseapp.com",
+      projectId: "cloud-vault-71d1b",
+      appId: "1:399415147497:web:b54237caab6b7e31a66978"
+    };
+
+    const DRIVE_LINK =
+      "https://drive.google.com/drive/folders/1juspfabc5hkzZIXXKEF_BXi8fqFqEIze?usp=sharin";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const form = document.getElementById("loginForm");
+    const button = document.getElementById("loginButton");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      button.disabled = true;
+      message.textContent = "Signing in...";
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+
+        // This only opens Drive; Drive permissions still apply.
+        window.location.href = DRIVE_LINK;
+
+      } catch (error) {
+        message.textContent =
+          error.code === "auth/invalid-credential" ||
+          error.code === "auth/wrong-password" ||
+          error.code === "auth/user-not-found"
+            ? "Incorrect email or password."
+            : error.code === "auth/too-many-requests"
+            ? "Too many attempts. Please try again later."
+            : "Sign-in failed. Check your settings and try again.";
+
+        button.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
+
